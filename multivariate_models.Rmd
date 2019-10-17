@@ -37,14 +37,23 @@ Purposes:
 
 ---
 
+---
+
+
+
+Confounding
+* If a variable is correlated with an outcome
+
+Multiple Causation
+* If two variables are correlated by predict an outcome in opposite ways, using only one attenuates its effect.
+    * This is a also a form of omitted variable bias. 
+    
 Multicollinearity
 * If two variables provide similar information, they are redundant and their effects difficult to separate.
     * Redundancy doesn't hurt prediction--you get accurate posteriors.
     * Redundancy hurts inference--you get large standard errors.
     
-Multiple Causation
-* If two variables are correlated by predict an outcome in opposite ways, using only one attenuates its effect.
-    * This is a form of omitted variable bias. 
+
 
 ---
 # Optimizer Example
