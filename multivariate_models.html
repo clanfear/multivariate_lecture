@@ -22,14 +22,26 @@ class: center, top, title-slide
 
 
 
+# Setup
 
+This brief lecture will use the `foxes` data from the Chapter 5 problem set of `rethinking`.
+
+We'll mostly use syntax from the book, except a `dplyr` command or two for convenience.
+
+You can follow along with purled code from the slides found here.
+
+Packages Used:
+
+* `rethinking`
+
+* `dplyr`
 
 ---
-# Intuition
+# Multivariate Intuition
 
 What is the predictive value of a variable, once I already know all of the other predictor variables?
 
-Purposes:
+Motivations:
 
 1. **Controlling for confounders**
 
@@ -38,7 +50,7 @@ Purposes:
 3. Measuring interactions (next week)
 
 ---
-# A multivariate model
+# A Multivariate Model
 
 &lt;img src="https://clanfear.github.io/multivariate_lecture/img/xzy_diagram.PNG" height=250 class="image-center"&gt;
 
@@ -49,35 +61,272 @@ What do we measure?
 * Implicit: `\(\rho\)` - correlation between `\(x\)` and `\(z\)`
 
 ---
+## Fitting a Model
+
+
+```r
+library(dplyr); library(rethinking);  data(foxes)
+foxes_std &lt;- mutate_at(foxes, vars(-group), ~ scale(.))
+m_1 &lt;- map(
+  alist(
+    weight ~ dnorm(mu, sigma) ,
+*   mu &lt;- a + b1*area + b2*groupsize + b3*avgfood,
+    a ~ dnorm( 0, 100),
+*   c(b1, b2, b3) ~ dnorm(0, 2),
+    sigma ~ dunif(0, 10)
+  ), data=foxes_std
+)
+precis( m_1)
+```
+
+```
+##        Mean StdDev  5.5% 94.5%
+## a      0.00   0.09 -0.14  0.14
+## b1     0.30   0.19  0.00  0.60
+## b2    -0.78   0.20 -1.10 -0.46
+## b3     0.41   0.24  0.03  0.79
+## sigma  0.93   0.06  0.83  1.03
+```
+
+---
+## Well, *that* doesn't look good.
+
+
+```r
+plot(precis(m_1))
+```
+
+&lt;img src="multivariate_models_files/figure-html/unnamed-chunk-3-1.png" style="display: block; margin: auto;" /&gt;
+
+*Let's talk about what can go wrong.*
+
+---
 ## Spuriousness
 
 &lt;img src="https://clanfear.github.io/multivariate_lecture/img/xzy_spuriousness.PNG" height=250 class="image-center"&gt;
 
-* `\(X\)` is correlated with `\(Y\)` only through `\(Z\)`
+Conditions of spuriousness:
+
+* `\(X\)` is correlated with `\(Y\)` mainly or only through `\(Z\)`
 * If `\(Z\)` is omitted, it appears `\(X\)` impacts `\(Y\)`
-* If `\(Z\)` is included, effect of `\(X\)` on `\(Y\)` is attenuated.
+* If `\(Z\)` is included, estimated effect of `\(X\)` on `\(Y\)` is attenuated.
+
+*This is classic omitted variable bias.*
+
+---
+## Diagnosing Spuriousness
+
+Univariate relationship, no multivariate
 
 ---
 ## Multiple Causation
 
 &lt;img src="https://clanfear.github.io/multivariate_lecture/img/xzy_masquerade.PNG" height=250 class="image-center"&gt;
 
-* If two variables are correlated by predict an outcome in opposite ways, using only one attenuates its effect.
-    * This is a also a form of omitted variable bias. 
+Conditions of multiple causation (suppression):
+
+* `\(X\)` directly impacts `\(Y\)` positively.
+* `\(Z\)` directly impacts `\(Y\)` negatively.
+* `\(X\)` and `\(Z\)` are correlated.
+* If only `\(X\)` or `\(Z\)` is included, its effect is attenuated (suppressed).
+
+*This is also omitted variable bias.*
+
+---
+## Diagnosing Suppression 1
+
+.small[
+.pull-left[
+
+```r
+m_sp_1 &lt;- map(
+  alist(
+    weight ~ dnorm(mu, sigma) ,
+    mu &lt;- a + b1*area, 
+    a ~ dnorm( 0, 100),
+    b1 ~ dnorm(0, 2), 
+    sigma ~ dunif(0, 10)
+  ), data=foxes_std
+)
+precis(m_sp_1)
+```
+
+```
+##       Mean StdDev  5.5% 94.5%
+## a     0.00   0.09 -0.15  0.15
+## b1    0.02   0.09 -0.13  0.17
+## sigma 1.00   0.07  0.89  1.10
+```
+
+We see no notable relationship between area and fox weight.
+
+]
+.pull-right[
+
+```r
+m_sp_2 &lt;- map(
+  alist(
+    weight ~ dnorm(mu, sigma) ,
+    mu &lt;- a + b2*groupsize, 
+    a ~ dnorm( 0, 100),
+    b2 ~ dnorm(0, 2), 
+    sigma ~ dunif(0, 10)
+  ), data=foxes_std
+)
+precis(m_sp_2)
+```
+
+```
+##        Mean StdDev  5.5% 94.5%
+## a      0.00   0.09 -0.15  0.15
+## b2    -0.16   0.09 -0.31 -0.01
+## sigma  0.98   0.06  0.88  1.09
+```
+
+We also see nothing for group size and fox weight.
+
+]
+]
+
+---
+## Diagnosing Suppression 1
+
+.smallish[
+
+```r
+m_sp_3 &lt;- map(
+  alist(
+    weight ~ dnorm(mu, sigma) ,
+    mu &lt;- a + b1*area + b2*groupsize, 
+    a ~ dnorm( 0, 100),
+    c(b1, b2) ~ dnorm(0, 2), 
+    sigma ~ dunif(0, 10)
+  ), data=foxes_std
+)
+plot(precis(m_sp_3))
+```
+
+&lt;img src="multivariate_models_files/figure-html/unnamed-chunk-6-1.png" style="display: block; margin: auto;" /&gt;
+]
+
+* Net of area, group size has a negative association with weight.
+* Net of group size, area has a positive assocation with weight.
+* Area and group size are positively correlated.
+
+*These variables suppress each other.*
 
 ---
 ## Multicollinearity
 
 &lt;img src="https://clanfear.github.io/multivariate_lecture/img/xzy_collinearity.PNG" height=250 class="image-center"&gt;
 
-* If two variables provide similar information, they are redundant and their effects difficult to separate.
-    * Redundancy doesn't hurt prediction--you get accurate posteriors.
-    * Redundancy hurts inference--you get large standard errors.
+Conditions of multicollinearity:
+
+* `\(X\)` and `\(Z\)` are highly correlated--they provide the same information.
+* If `\(X\)` and `\(Z\)` are both included, estimates are uncertain.
+* Redundancy doesn't hurt prediction--you get accurate posteriors.
+* Redundancy hurts inference--you get large standard errors.
+
+*This is not bias, but weak identification.*
+
+---
+## Diagnosing Multicollinearity
+
+
+```r
+m_mc_1 &lt;- map(
+  alist(
+    weight ~ dnorm(mu, sigma) ,
+    mu &lt;- a + b1*avgfood + b2*area, 
+    a ~ dnorm( 0, 100),
+    c(b1, b2) ~ dnorm(0, 2), 
+    sigma ~ dunif(0, 10)
+  ), data=foxes_std
+)
+plot(precis(m_mc_1))
+```
+
+&lt;img src="multivariate_models_files/figure-html/unnamed-chunk-7-1.png" style="display: block; margin: auto;" /&gt;
+
+```r
+cor(foxes_std)["avgfood", "area"]
+```
+
+```
+## [1] 0.8831038
+```
+
+---
+
+.small[
+.pull-left[
+
+```r
+m_mc_2 &lt;- map(
+  alist(
+    weight ~ dnorm(mu, sigma) ,
+    mu &lt;- a + b1*area, 
+    a ~ dnorm( 0, 100),
+    b1 ~ dnorm(0, 2), 
+    sigma ~ dunif(0, 10)
+  ), data=foxes_std
+)
+plot(precis(m_mc_2))
+```
+
+![](multivariate_models_files/figure-html/unnamed-chunk-8-1.png)&lt;!-- --&gt;
+
+]
+
+.pull-right[
+
+```r
+m_mc_3 &lt;- map(
+  alist(
+    weight ~ dnorm(mu, sigma) ,
+    mu &lt;- a + b2*avgfood, 
+    a ~ dnorm( 0, 100),
+    b2 ~ dnorm(0, 2), 
+    sigma ~ dunif(0, 10)
+  ), data=foxes_std
+)
+plot(precis(m_mc_3))
+```
+
+![](multivariate_models_files/figure-html/unnamed-chunk-9-1.png)&lt;!-- --&gt;
+
+]
+]
 
 ---
 ## Post-Treatment Bias
+
+&lt;img src="https://clanfear.github.io/multivariate_lecture/img/xzy_posttreatment.PNG" height=250 class="image-center"&gt;
+
+Conditions of post-treatment bias:
+
+* `\(X\)` impacts `\(Y\)` through `\(Z\)`--it is a mediator.
+* `\(Z\)` provides much of same information as `\(X\)`.
+* If `\(Z\)` is included, `\(B_2\)` absorbs some of `\(B_1\)`.
+
+*This is included variable bias.*
+
 ---
-# Optimizer Example
+## Diagnosing Post-Treatment Bias
+
+
+
+
+---
+# Key Takeaway
+
+Aside from multicollinearity, it is hard to distinguish between different relationships.
+
+Need a clear causal model for relationships to make sense of it.
+
+
+---
+# An Optimizer Example
 
 119 iterations of a Nelder-Mead optimizer on OLS.
 
@@ -88,6 +337,8 @@ Squares depict **squared errors**.
 Minimizing the **sum squared errors** is the objective of the mean loss function in a linear regression.
 
 &lt;img src="http://www.jessefagan.com/content/images/2019/10/advertising_album_sales_regression_animation_06.gif"&gt;
+
+Source: Jesse Fagan, [R code available here](https://gist.github.com/jfaganUK/0f38d414d9a132d029c366ac310a2a06).
 
 ---
     </textarea>
