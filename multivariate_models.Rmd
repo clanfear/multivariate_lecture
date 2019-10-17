@@ -47,29 +47,44 @@ What do we measure?
 * Implicit: $\rho$ - correlation between $x$ and $z$
 
 ---
+## Spuriousness
 
 <img src="https://clanfear.github.io/multivariate_lecture/img/xzy_spuriousness.PNG" height=250 class="image-center">
 
-Confounding
-* If a variable is correlated with an outcome
+
+
+* $X$ is correlated with $Y$ mainly or only through $Z$
+* If $Z$ is omitted, it appears $X$ impacts $Y$
+* If $Z$ is included, estimated effect of $X$ on $Y$ is attenuated.
+
+*This is classic omitted variable bias.*
 
 ---
+## Multiple Causation
 
 <img src="https://clanfear.github.io/multivariate_lecture/img/xzy_masquerade.PNG" height=250 class="image-center">
 
-Multiple Causation
-* If two variables are correlated by predict an outcome in opposite ways, using only one attenuates its effect.
-    * This is a also a form of omitted variable bias. 
+* $X$ directly impacts $Y$ positively.
+* $Z$ directly impacts $Y$ negatively.
+* $X$ and $Z$ are correlated.
+* If only $X$ or $Z$ is included, its effect is attenuated (suppressed).
+
+
+*This is also omitted variable bias.*
 
 ---
+## Multicollinearity
+
 <img src="https://clanfear.github.io/multivariate_lecture/img/xzy_collinearity.PNG" height=250 class="image-center">
 
-Multicollinearity
 * If two variables provide similar information, they are redundant and their effects difficult to separate.
     * Redundancy doesn't hurt prediction--you get accurate posteriors.
     * Redundancy hurts inference--you get large standard errors.
-    
 
+---
+## Post-Treatment Bias
+
+<img src="https://clanfear.github.io/multivariate_lecture/img/xzy_posttreatment.PNG" height=250 class="image-center">
 
 ---
 # Optimizer Example
