@@ -1,0 +1,62 @@
+---
+title: "Multivariate Linear Models"
+subtitle: "Statistical Rethinking<br>Chapter 4"
+author: "Chuck Lanfear"
+date: "`r gsub(' 0', ' ', format(Sys.Date(), format='%b %d, %Y'))`"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: xaringan-themer.css
+    nature:
+      highlightStyle: tomorrow-night-bright
+      highlightLines: true
+      countIncrementalSlides: false
+      titleSlideClass: ["center","top"]
+---
+
+
+
+```{r, include=FALSE}
+knitr::purl("./multivariate_models.Rmd")
+```
+
+
+
+---
+# Intuition
+
+What is the predictive value of a variable, once I already know all of the other predictor variables?
+
+Purposes:
+
+1. **Controlling for confounders**
+
+2. **Capturing multiple causation**
+
+3. Measuring interactions (next week)
+
+---
+
+Multicollinearity
+* If two variables provide similar information, they are redundant and their effects difficult to separate.
+    * Redundancy doesn't hurt prediction--you get accurate posteriors.
+    * Redundancy hurts inference--you get large standard errors.
+    
+Multiple Causation
+* If two variables are correlated by predict an outcome in opposite ways, using only one attenuates its effect.
+    * This is a form of omitted variable bias. 
+
+---
+# Optimizer Example
+
+119 iterations of a Nelder-Mead optimizer on OLS.
+
+Start Values: $\alpha = 1$, $\beta = 1$
+
+Squares depict **squared errors**.
+
+Minimizing the **sum squared errors** is the objective of the mean loss function in a linear regression.
+
+<img src="http://www.jessefagan.com/content/images/2019/10/advertising_album_sales_regression_animation_06.gif">
+
+---
