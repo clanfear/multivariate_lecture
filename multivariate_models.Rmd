@@ -1,6 +1,6 @@
 ---
 title: "Multivariate Linear Models"
-subtitle: "Statistical Rethinking<br>Chapter 4"
+subtitle: "Statistical Rethinking<br>Chapter 5"
 author: "Chuck Lanfear"
 date: "`r gsub(' 0', ' ', format(Sys.Date(), format='%b %d, %Y'))`"
 output:
@@ -16,7 +16,7 @@ output:
 
 
 
-```{r, include=FALSE}
+```{r, include=FALSE, purl=FALSE}
 knitr::purl("./multivariate_models.Rmd")
 ```
 
@@ -26,7 +26,7 @@ This brief lecture will use the `foxes` data from the Chapter 5 problem set of `
 
 We'll mostly use syntax from the book, except a `dplyr` command or two for convenience.
 
-You can follow along with purled code from the slides found here.
+You can follow along with purled code from the slides [found here](https://github.com/clanfear/multivariate_lecture/blob/master/multivariate_models.R).
 
 Packages Used:
 
@@ -61,16 +61,16 @@ What do we measure?
 ---
 ## Fitting a Model
 
-```{r, warning=FALSE, message=FALSE}
-library(dplyr); library(rethinking);  data(foxes)
+```{r, , fig.width=8, fig.height=4, warning=FALSE, message=FALSE, fig.align="center"}
+library(dplyr); library(rethinking); set.seed(7); data(foxes)
 foxes_std <- mutate_at(foxes, vars(-group), ~ scale(.))
 m_1 <- map(
   alist(
     weight ~ dnorm(mu, sigma) ,
     mu <- a + b1*area + b2*groupsize + b3*avgfood, #<<
-    a ~ dnorm( 0, 100),
+    a             ~ dnorm( 0, 100),
     c(b1, b2, b3) ~ dnorm(0, 2), #<<
-    sigma ~ dunif(0, 10)
+    sigma         ~ dunif(0, 10)
   ), data=foxes_std
 )
 precis( m_1)
@@ -79,7 +79,7 @@ precis( m_1)
 ---
 ## Well, *that* doesn't look good.
 
-```{r, fig.width=8, fig.height=4, fig.align="center"}
+```{r, fig.width=8, fig.height=4, message=FALSE, warning=FALSE, fig.align="center"}
 plot(precis(m_1))
 ```
 
@@ -99,39 +99,94 @@ Conditions of spuriousness:
 *This is classic omitted variable bias.*
 
 ---
-## Diagnosing Spuriousness
+## Spurious Models 1
 
-Univariate relationship, no multivariate
+.small[
+```{r, fig.width=6, fig.height=4, message=FALSE, warning=FALSE, fig.align="center"}
+foxes_std <- foxes_std %>% mutate(., spur_y = rnorm(nrow(.), weight, 1),
+                                     spur_x = rnorm(nrow(.), weight, 1))
+m_sp_1 <- map(
+  alist(
+    spur_y ~ dnorm(mu, sigma) ,
+    mu <- a + b1*spur_x, 
+    a     ~ dnorm( 0, 100),
+    b1    ~ dnorm(0, 2), 
+    sigma ~ dunif(0, 10)
+  ), data=foxes_std)
+plot(precis(m_sp_1))
+```
+]
+
+---
+## Spurious Models 2
+
+.small[
+.pull-left[
+```{r, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"}
+m_sp_2 <- map(
+  alist(
+    spur_y ~ dnorm(mu, sigma) ,
+    mu <- a + b1*weight + b2*spur_x, 
+    a         ~ dnorm( 0, 100),
+    c(b1, b2) ~ dnorm(0, 2), 
+    sigma     ~ dunif(0, 10)
+  ), data=foxes_std)
+plot(precis(m_sp_2))
+```
+
+In the presence of `weight`, `b2` is near 0; `spur_x` has no effect.
+
+]
+.pull-right[
+```{r, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"}
+m_sp_3 <- map(
+  alist(
+    spur_y ~ dnorm(mu, sigma) ,
+    mu <- a + b1*weight, 
+    a     ~ dnorm( 0, 100),
+    b1    ~ dnorm(0, 2), 
+    sigma ~ dunif(0, 10)
+  ), data=foxes_std)
+plot(precis(m_sp_3))
+```
+
+Removing `spur_x` has minimal impact on `b1`, but precision increases.
+
+]
+]
 
 ---
 ## Multiple Causation
 
 <img src="https://clanfear.github.io/multivariate_lecture/img/xzy_masquerade.PNG" height=250 class="image-center">
 
-Conditions of multiple causation (suppression):
+Conditions of multiple (masked) causation:
 
 * $X$ directly impacts $Y$ positively.
 * $Z$ directly impacts $Y$ negatively.
 * $X$ and $Z$ are correlated.
-* If only $X$ or $Z$ is included, its effect is attenuated (suppressed).
+* If only $X$ or $Z$ is included, its effect is attenuated.
 
-*This is also omitted variable bias.*
+*This is also omitted variable bias*<sup>1
+
+.pull-right[
+.footnote[[1] In this case it appears to be a form of suppression?]
+]
 
 ---
-## Diagnosing Suppression 1
+## Multiple Causation Models 1
 
 .small[
 .pull-left[
-```{r, fig.width=4, fig.height=3, fig.align="center"}
+```{r, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"}
 m_sp_1 <- map(
   alist(
     weight ~ dnorm(mu, sigma) ,
     mu <- a + b1*area, 
-    a ~ dnorm( 0, 100),
-    b1 ~ dnorm(0, 2), 
+    a     ~ dnorm( 0, 100),
+    b1    ~ dnorm(0, 2), 
     sigma ~ dunif(0, 10)
-  ), data=foxes_std
-)
+  ), data=foxes_std)
 precis(m_sp_1)
 ```
 
@@ -139,47 +194,44 @@ We see no notable relationship between area and fox weight.
 
 ]
 .pull-right[
-```{r, fig.width=4, fig.height=3, fig.align="center"}
+```{r, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"}
 m_sp_2 <- map(
   alist(
     weight ~ dnorm(mu, sigma) ,
     mu <- a + b2*groupsize, 
-    a ~ dnorm( 0, 100),
-    b2 ~ dnorm(0, 2), 
+    a     ~ dnorm( 0, 100),
+    b2    ~ dnorm(0, 2), 
     sigma ~ dunif(0, 10)
-  ), data=foxes_std
-)
+  ), data=foxes_std)
 precis(m_sp_2)
 ```
 
-We also see nothing for group size and fox weight.
+We also see a minimal relationship for group size and fox weight.
 
 ]
 ]
 
 ---
-## Diagnosing Suppression 1
+## Multiple Causation Models 2
 
-.smallish[
-```{r, fig.width=6, fig.height=3, fig.align="center"}
+.small[
+```{r, fig.width=6, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"}
 m_sp_3 <- map(
   alist(
     weight ~ dnorm(mu, sigma) ,
     mu <- a + b1*area + b2*groupsize, 
-    a ~ dnorm( 0, 100),
+    a         ~ dnorm( 0, 100),
     c(b1, b2) ~ dnorm(0, 2), 
-    sigma ~ dunif(0, 10)
-  ), data=foxes_std
-)
+    sigma     ~ dunif(0, 10)
+  ), data=foxes_std)
 plot(precis(m_sp_3))
 ```
 ]
 
 * Net of area, group size has a negative association with weight.
 * Net of group size, area has a positive assocation with weight.
-* Area and group size are positively correlated.
 
-*These variables suppress each other.*
+*Residualizing each variable strengthens the relationship*
 
 ---
 ## Multicollinearity
@@ -190,63 +242,63 @@ Conditions of multicollinearity:
 
 * $X$ and $Z$ are highly correlated--they provide the same information.
 * If $X$ and $Z$ are both included, estimates are uncertain.
-* Redundancy doesn't hurt prediction--you get accurate posteriors.
-* Redundancy hurts inference--you get large standard errors.
+* This redundancy doesn't hurt prediction--you get accurate posterior predictions.
 
 *This is not bias, but weak identification.*
 
 ---
 ## Diagnosing Multicollinearity
 
-```{r, fig.width=6, fig.height=3, fig.align="center"}
+.small[
+```{r, fig.width=6, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"}
 m_mc_1 <- map(
   alist(
     weight ~ dnorm(mu, sigma) ,
     mu <- a + b1*avgfood + b2*area, 
-    a ~ dnorm( 0, 100),
+    a         ~ dnorm( 0, 100),
     c(b1, b2) ~ dnorm(0, 2), 
-    sigma ~ dunif(0, 10)
-  ), data=foxes_std
-)
+    sigma     ~ dunif(0, 10)
+  ), data=foxes_std)
 plot(precis(m_mc_1))
 cor(foxes_std)["avgfood", "area"]
 ```
+]
 
 ---
+## Diagnosing Multicollinearity
 
 .small[
 .pull-left[
-```{r, fig.width=4, fig.height=3}
+```{r, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"}
 m_mc_2 <- map(
   alist(
     weight ~ dnorm(mu, sigma) ,
     mu <- a + b1*area, 
-    a ~ dnorm( 0, 100),
-    b1 ~ dnorm(0, 2), 
+    a     ~ dnorm( 0, 100),
+    b1    ~ dnorm(0, 2), 
     sigma ~ dunif(0, 10)
-  ), data=foxes_std
-)
+  ), data=foxes_std)
 plot(precis(m_mc_2))
 ```
-
 ]
-
 .pull-right[
-```{r, fig.width=4, fig.height=3}
+```{r, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"}
 m_mc_3 <- map(
   alist(
     weight ~ dnorm(mu, sigma) ,
     mu <- a + b2*avgfood, 
-    a ~ dnorm( 0, 100),
-    b2 ~ dnorm(0, 2), 
+    a     ~ dnorm( 0, 100),
+    b2    ~ dnorm(0, 2), 
     sigma ~ dunif(0, 10)
-  ), data=foxes_std
-)
+  ), data=foxes_std)
 plot(precis(m_mc_3))
 ```
+]
+]
 
-]
-]
+<br>
+<br>
+
 
 ---
 ## Post-Treatment Bias
@@ -262,20 +314,100 @@ Conditions of post-treatment bias:
 *This is included variable bias.*
 
 ---
-## Diagnosing Post-Treatment Bias
+## Post-Treatment Model 1
 
-```{r}
+.small[
+```{r, fig.width=6, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"}
+foxes_std <- foxes_std %>% 
+  mutate(., pt_z = rnorm(nrow(.), weight, 1),
+            pt_y = rnorm(nrow(.), 0.4*pt_z + 0.1*weight, 0.25))
+m_pt_1 <- map(
+  alist(
+    pt_y ~ dnorm(mu, sigma) ,
+    mu <- a + b1*pt_z + b2*weight, 
+    a         ~ dnorm( 0, 100),
+    c(b1, b2) ~ dnorm(0, 2), 
+    sigma     ~ dunif(0, 10)
+  ), data=foxes_std)
+plot(precis(m_pt_1))
 
 ```
-
+]
 
 ---
-# Key Takeaway
+## Post-Treatment Model 2
 
-Aside from multicollinearity, it is hard to distinguish between different relationships.
+.small[
+.pull-left[
+```{r, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"}
+m_pt_2 <- map(
+  alist(
+    pt_y ~ dnorm(mu, sigma) ,
+    mu <- a + b2*weight, 
+    a     ~ dnorm( 0, 100),
+    b2    ~ dnorm(0, 2), 
+    sigma ~ dunif(0, 10)
+  ), data=foxes_std)
+plot(precis(m_pt_2))
+```
+]
+.pull-right[
+```{r, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"}
+m_pt_3 <- map(
+  alist(
+    pt_y ~ dnorm(mu, sigma) ,
+    mu <- a + b2*pt_z, 
+    a     ~ dnorm( 0, 100),
+    b2    ~ dnorm(0, 2), 
+    sigma ~ dunif(0, 10)
+  ), data=foxes_std)
+plot(precis(m_pt_3))
+```
+]
+]
+---
+## Post-Treatment Model 3
 
-Need a clear causal model for relationships to make sense of it.
+.smaller[
+.pull-left[
+```{r, fig.width=5, fig.height=4, message=FALSE, warning=FALSE, fig.align="center", fig.keep='last', results="hide"}
+wt_seq <- seq(-2.5,2.5,0.01)
+mu <- link(m_pt_2, data=list(weight = wt_seq))
+mu.mean <- apply(mu, 2, mean)
+mu.HPDI <- apply(mu, 2, HPDI, prob=0.95)
+weight.sim <- sim(m_pt_2, data=list(weight = wt_seq))
+weight.HPDI <- apply(weight.sim, 2, HPDI, prob=0.95)
+plot(pt_y ~ weight, data=foxes_std)
+lines( wt_seq, mu.mean)
+shade( mu.HPDI, wt_seq)
+shade( weight.HPDI, wt_seq)
+```
+]
+.pull-right[
+```{r, fig.width=5, fig.height=4, message=FALSE, warning=FALSE, fig.align="center", fig.keep='last', results="hide"}
+pt_z_seq <- seq(-2.5,2.5,0.01)
+mu <- link(m_pt_3, data=list(pt_z = pt_z_seq))
+mu.mean <- apply(mu, 2, mean)
+mu.HPDI <- apply(mu, 2, HPDI, prob=0.95)
+pt_z.sim <- sim(m_pt_3, data=list(pt_z = pt_z_seq))
+pt_z.HPDI <- apply(pt_z.sim, 2, HPDI, prob=0.95)
+plot(pt_y ~ pt_z, data=foxes_std)
+lines( pt_z_seq, mu.mean)
+shade( mu.HPDI, pt_z_seq)
+shade( pt_z.HPDI, pt_z_seq)
+```
+]
+]
+---
+# Key Takeaways
 
+* Aside from multicollinearity, it is hard to distinguish between different relationships.
+
+* Need a clear causal model for relationships to make sense of it.
+
+* Including additional variables doesn't always improve the model.
+
+* Additional variables usually improve in-sample fit.
 
 ---
 # An Optimizer Example
@@ -291,5 +423,3 @@ Minimizing the **sum squared errors** is the objective of the mean loss function
 <img src="http://www.jessefagan.com/content/images/2019/10/advertising_album_sales_regression_animation_06.gif">
 
 Source: Jesse Fagan, [R code available here](https://gist.github.com/jfaganUK/0f38d414d9a132d029c366ac310a2a06).
-
----
