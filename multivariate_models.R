@@ -1,4 +1,4 @@
-## ---- , fig.width=8, fig.height=4, warning=FALSE, message=FALSE, fig.align="center"----
+## ----multivariate-model, fig.width=8, fig.height=4, warning=FALSE, message=FALSE, fig.align="center"----
 library(dplyr); library(rethinking); set.seed(7); data(foxes)
 foxes_std <- mutate_at(foxes, vars(-group), ~ scale(.))
 m_1 <- map(
@@ -13,11 +13,11 @@ m_1 <- map(
 precis( m_1)
 
 
-## ---- fig.width=8, fig.height=4, message=FALSE, warning=FALSE, fig.align="center"----
+## ----multivariate-plot, fig.width=8, fig.height=4, message=FALSE, warning=FALSE, fig.align="center"----
 plot(precis(m_1))
 
 
-## ---- fig.width=6, fig.height=4, message=FALSE, warning=FALSE, fig.align="center"----
+## ----spurious-1, fig.width=6, fig.height=4, message=FALSE, warning=FALSE, fig.align="center"----
 foxes_std <- foxes_std %>% mutate(., spur_y = rnorm(nrow(.), weight, 1),
                                      spur_x = rnorm(nrow(.), weight, 1))
 m_sp_1 <- map(
@@ -31,7 +31,7 @@ m_sp_1 <- map(
 plot(precis(m_sp_1))
 
 
-## ---- fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
+## ----spurious-2, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
 m_sp_2 <- map(
   alist(
     spur_y ~ dnorm(mu, sigma) ,
@@ -43,7 +43,7 @@ m_sp_2 <- map(
 plot(precis(m_sp_2))
 
 
-## ---- fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
+## ----spurious-3, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
 m_sp_3 <- map(
   alist(
     spur_y ~ dnorm(mu, sigma) ,
@@ -55,7 +55,7 @@ m_sp_3 <- map(
 plot(precis(m_sp_3))
 
 
-## ---- fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
+## ----multiple-causation-1, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
 m_sp_1 <- map(
   alist(
     weight ~ dnorm(mu, sigma) ,
@@ -67,7 +67,7 @@ m_sp_1 <- map(
 precis(m_sp_1)
 
 
-## ---- fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
+## ----multiple-causation-2, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
 m_sp_2 <- map(
   alist(
     weight ~ dnorm(mu, sigma) ,
@@ -79,7 +79,7 @@ m_sp_2 <- map(
 precis(m_sp_2)
 
 
-## ---- fig.width=6, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
+## ----multiple-causation-3, fig.width=6, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
 m_sp_3 <- map(
   alist(
     weight ~ dnorm(mu, sigma) ,
@@ -91,7 +91,7 @@ m_sp_3 <- map(
 plot(precis(m_sp_3))
 
 
-## ---- fig.width=6, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
+## ----multicollinearity-1, fig.width=6, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
 m_mc_1 <- map(
   alist(
     weight ~ dnorm(mu, sigma) ,
@@ -104,7 +104,7 @@ plot(precis(m_mc_1))
 cor(foxes_std)["avgfood", "area"]
 
 
-## ---- fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
+## ----multicollinearity-2, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
 m_mc_2 <- map(
   alist(
     weight ~ dnorm(mu, sigma) ,
@@ -116,7 +116,7 @@ m_mc_2 <- map(
 plot(precis(m_mc_2))
 
 
-## ---- fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
+## ----multicollinearity-3, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
 m_mc_3 <- map(
   alist(
     weight ~ dnorm(mu, sigma) ,
@@ -128,7 +128,7 @@ m_mc_3 <- map(
 plot(precis(m_mc_3))
 
 
-## ---- fig.width=6, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
+## ----post-treatment-bias-1, fig.width=6, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
 foxes_std <- foxes_std %>% 
   mutate(., pt_z = rnorm(nrow(.), weight, 1),
             pt_y = rnorm(nrow(.), 0.4*pt_z + 0.1*weight, 0.25))
@@ -144,7 +144,7 @@ plot(precis(m_pt_1))
 
 
 
-## ---- fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
+## ----post-treatment-bias-2, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
 m_pt_2 <- map(
   alist(
     pt_y ~ dnorm(mu, sigma) ,
@@ -156,7 +156,7 @@ m_pt_2 <- map(
 plot(precis(m_pt_2))
 
 
-## ---- fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
+## ----post-treatment-bias-3, fig.width=4, fig.height=3, message=FALSE, warning=FALSE, fig.align="center"----
 m_pt_3 <- map(
   alist(
     pt_y ~ dnorm(mu, sigma) ,
@@ -168,7 +168,7 @@ m_pt_3 <- map(
 plot(precis(m_pt_3))
 
 
-## ---- fig.width=5, fig.height=4, message=FALSE, warning=FALSE, fig.align="center", fig.keep='last', results="hide"----
+## ----post-treatment-bias-4, fig.width=5, fig.height=4, message=FALSE, warning=FALSE, fig.align="center", fig.keep='last', results="hide"----
 wt_seq <- seq(-2.5,2.5,0.01)
 mu <- link(m_pt_2, data=list(weight = wt_seq))
 mu.mean <- apply(mu, 2, mean)
@@ -181,7 +181,7 @@ shade( mu.HPDI, wt_seq)
 shade( weight.HPDI, wt_seq)
 
 
-## ---- fig.width=5, fig.height=4, message=FALSE, warning=FALSE, fig.align="center", fig.keep='last', results="hide"----
+## ----post-treatment-bias-5, fig.width=5, fig.height=4, message=FALSE, warning=FALSE, fig.align="center", fig.keep='last', results="hide"----
 pt_z_seq <- seq(-2.5,2.5,0.01)
 mu <- link(m_pt_3, data=list(pt_z = pt_z_seq))
 mu.mean <- apply(mu, 2, mean)
